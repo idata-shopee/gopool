@@ -17,7 +17,7 @@ type CleanFunction = func()
 
 type Item struct {
 	resource interface{}   // keep resource
-	clean    CleanFunction // clean resource
+	clean    CleanFunction // clean resource TODO with DLB
 }
 
 type OnItemBorken = func()
@@ -32,6 +32,12 @@ type Pool struct {
 	size       int
 	mutex      *sync.Mutex
 	duration   time.Duration
+}
+
+func (pool *Pool) GetItemNum() int {
+	pool.mutex.Lock()
+	defer pool.mutex.Unlock()
+	return len(pool.items)
 }
 
 func (pool *Pool) addNewItem() {
@@ -90,6 +96,7 @@ func (pool *Pool) Get() (interface{}, error) {
 
 func (pool *Pool) maintain() {
 	pool.addNewItem()
+
 	go (func() {
 		time.Sleep(pool.duration)
 		// keep maintain
@@ -97,9 +104,9 @@ func (pool *Pool) maintain() {
 	})()
 }
 
-func GetPool(getNewItem GetNewItem, size int) Pool {
+func GetPool(getNewItem GetNewItem, size int, duration time.Duration) Pool {
 	items := map[string]Item{}
-	pool := Pool{items, getNewItem, size, &sync.Mutex{}, 3000}
+	pool := Pool{items, getNewItem, size, &sync.Mutex{}, duration}
 	pool.maintain()
 	return pool
 }
