@@ -24,8 +24,8 @@ func TestBase(t *testing.T) {
 		return a + b
 	}
 
-	getNewItem := func(onItemBoken OnItemBorken) (Item, error) {
-		return Item{res, func() {}}, nil
+	getNewItem := func(onItemBoken OnItemBorken) (*Item, error) {
+		return &Item{res, func() {}}, nil
 	}
 
 	pool := GetPool(getNewItem, 8, 3000*time.Millisecond)
@@ -46,7 +46,7 @@ func TestOnBroken(t *testing.T) {
 	}
 
 	count := 0
-	getNewItem := func(onItemBoken OnItemBorken) (Item, error) {
+	getNewItem := func(onItemBoken OnItemBorken) (*Item, error) {
 		count += 1
 		if count == 3 {
 			go (func() {
@@ -54,7 +54,7 @@ func TestOnBroken(t *testing.T) {
 				onItemBoken()
 			})()
 		}
-		return Item{res, func() {}}, nil
+		return &Item{res, func() {}}, nil
 	}
 
 	pool := GetPool(getNewItem, 3, 50*time.Millisecond)
@@ -70,7 +70,7 @@ func TestOnBroken2(t *testing.T) {
 	}
 
 	count := 0
-	getNewItem := func(onItemBoken OnItemBorken) (Item, error) {
+	getNewItem := func(onItemBoken OnItemBorken) (*Item, error) {
 		count += 1
 		if count == 3 {
 			go (func() {
@@ -80,9 +80,9 @@ func TestOnBroken2(t *testing.T) {
 		}
 
 		if count > 3 {
-			return Item{res, func() {}}, errors.New("no items")
+			return nil, errors.New("no items")
 		}
-		return Item{res, func() {}}, nil
+		return &Item{res, func() {}}, nil
 	}
 
 	pool := GetPool(getNewItem, 3, 1*time.Millisecond)

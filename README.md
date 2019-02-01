@@ -17,8 +17,8 @@ res := func(a int, b int) int {
 }
 
 // create pool
-getNewItem := func(onItemBoken gopool.OnItemBorken) (gopool.Item, error) {
-	return gopool.Item{res, func() {}}, nil
+getNewItem := func(onItemBoken gopool.OnItemBorken) (*gopool.Item, error) {
+	return &gopool.Item{res, func() {}}, nil
 }
 
 pool := GetPool(getNewItem, 8, 3000*time.Millisecond)

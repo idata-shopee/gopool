@@ -16,18 +16,18 @@ import (
 type CleanFunction = func()
 
 type Item struct {
-	resource interface{}   // keep resource
-	clean    CleanFunction // clean resource TODO with DLB
+	Resouce interface{}   // keep Resouce
+	Clean   CleanFunction // Clean Resouce TODO with DLB
 }
 
 type OnItemBorken = func()
 
 // get new item and can know the moment when it brokes
-type GetNewItem = func(OnItemBorken) (Item, error)
+type GetNewItem = func(OnItemBorken) (*Item, error)
 
 // define pool data structure
 type Pool struct {
-	items      map[string]Item
+	items      map[string]*Item
 	getNewItem GetNewItem
 	size       int
 	mutex      *sync.Mutex
@@ -87,7 +87,7 @@ func (pool *Pool) Get() (interface{}, error) {
 	count := 0
 	for key := range pool.items {
 		if count == n {
-			return pool.items[key].resource, nil
+			return pool.items[key].Resouce, nil
 		}
 		count += 1
 	}
@@ -105,7 +105,7 @@ func (pool *Pool) maintain() {
 }
 
 func GetPool(getNewItem GetNewItem, size int, duration time.Duration) Pool {
-	items := map[string]Item{}
+	items := map[string]*Item{}
 	pool := Pool{items, getNewItem, size, &sync.Mutex{}, duration}
 	pool.maintain()
 	return pool
