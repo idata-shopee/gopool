@@ -66,8 +66,10 @@ func (pool *Pool) addNewItem() {
 
 func (pool *Pool) removeItem(id string) {
 	pool.mutex.Lock()
-	defer pool.mutex.Unlock()
 	delete(pool.items, id)
+	pool.mutex.Unlock()
+
+	pool.addNewItem()
 }
 
 func (pool *Pool) Get() (interface{}, error) {
@@ -96,11 +98,10 @@ func (pool *Pool) Get() (interface{}, error) {
 
 func (pool *Pool) maintain() {
 	pool.addNewItem()
-
 	go (func() {
 		time.Sleep(pool.duration)
 		// keep maintain
-		go pool.maintain()
+		pool.maintain()
 	})()
 }
 
@@ -108,5 +109,6 @@ func GetPool(getNewItem GetNewItem, size int, duration time.Duration) Pool {
 	items := map[string]*Item{}
 	pool := Pool{items, getNewItem, size, &sync.Mutex{}, duration}
 	pool.maintain()
+
 	return pool
 }
