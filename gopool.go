@@ -42,9 +42,6 @@ func (pool *Pool) GetItemNum() int {
 }
 
 func (pool *Pool) addNewItem() {
-	pool.mutex.Lock()
-	defer pool.mutex.Unlock()
-
 	if len(pool.items) < pool.size {
 		uid, uerr := uuid.NewV4()
 		id := uid.String()
@@ -53,8 +50,7 @@ func (pool *Pool) addNewItem() {
 			fmt.Println(uerr)
 		} else {
 			item, err := pool.getNewItem(func() {
-				// when item broken, remove from pool
-				go pool.removeItem(id)
+				pool.handleItemBroken(id)
 			})
 			if err != nil {
 				// TODO
@@ -66,12 +62,17 @@ func (pool *Pool) addNewItem() {
 	}
 }
 
-func (pool *Pool) removeItem(id string) {
-	pool.mutex.Lock()
-	delete(pool.items, id)
-	pool.mutex.Unlock()
+// when item broken, remove from pool
+func (pool *Pool) handleItemBroken(id string) {
+	go (func() {
+		pool.mutex.Lock()
+		defer pool.mutex.Unlock()
 
-	pool.addNewItem()
+		delete(pool.items, id)
+		if pool.status == 1 {
+			pool.addNewItem()
+		}
+	})()
 }
 
 func (pool *Pool) Get() (interface{}, error) {
@@ -105,15 +106,17 @@ func (pool *Pool) Shutdown() {
 	defer pool.mutex.Unlock()
 
 	pool.status = 0 // change status
-
 	// clean all resources
 	for id, item := range pool.items {
-		item.Clean()
 		delete(pool.items, id)
+		item.Clean()
 	}
 }
 
 func (pool *Pool) maintain() {
+	pool.mutex.Lock()
+	defer pool.mutex.Unlock()
+
 	if pool.status == 1 { // only maintain alive pool
 		pool.addNewItem()
 		go (func() {
@@ -128,10 +131,10 @@ func (pool *Pool) maintain() {
 //    (1) getNewItem: how to get a new item
 //    (2) size
 //    (3) duration to get a new item
-func GetPool(getNewItem GetNewItem, size int, duration time.Duration) Pool {
+func GetPool(getNewItem GetNewItem, size int, duration time.Duration) *Pool {
 	items := map[string]*Item{}
 	pool := Pool{items, getNewItem, size, &sync.Mutex{}, duration, 1}
 	pool.maintain()
 
-	return pool
+	return &pool
 }
