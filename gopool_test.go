@@ -92,3 +92,32 @@ func TestOnBroken2(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 	assertEqual(t, 2, pool.GetItemNum(), "")
 }
+
+// on item broken case
+func TestShutdown(t *testing.T) {
+	type Res = func(int, int) int
+	res := func(a int, b int) int {
+		return a + b
+	}
+
+	count := 0
+	getNewItem := func(onItemBoken OnItemBorken) (*Item, error) {
+		count += 1
+		if count == 3 {
+			go (func() {
+				time.Sleep(50 * time.Millisecond)
+				onItemBoken()
+			})()
+		}
+		return &Item{res, func() {}}, nil
+	}
+
+	pool := GetPool(getNewItem, 3, 50*time.Millisecond)
+
+	time.Sleep(250 * time.Millisecond)
+	pool.Shutdown()
+	_, err := pool.Get()
+	if err == nil {
+		t.Errorf("expect error")
+	}
+}

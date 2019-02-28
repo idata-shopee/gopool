@@ -32,6 +32,7 @@ type Pool struct {
 	size       int
 	mutex      *sync.Mutex
 	duration   time.Duration
+	status     int // pool status, 0: stoped, 1: opened
 }
 
 func (pool *Pool) GetItemNum() int {
@@ -52,6 +53,7 @@ func (pool *Pool) addNewItem() {
 			fmt.Println(uerr)
 		} else {
 			item, err := pool.getNewItem(func() {
+				// when item broken, remove from pool
 				go pool.removeItem(id)
 			})
 			if err != nil {
@@ -96,18 +98,39 @@ func (pool *Pool) Get() (interface{}, error) {
 	return 0, errors.New("pool is empty!!!")
 }
 
-func (pool *Pool) maintain() {
-	pool.addNewItem()
-	go (func() {
-		time.Sleep(pool.duration)
-		// keep maintain
-		pool.maintain()
-	})()
+// shut down a pool
+// normally this is used for testing
+func (pool *Pool) Shutdown() {
+	pool.mutex.Lock()
+	defer pool.mutex.Unlock()
+
+	pool.status = 0 // change status
+
+	// clean all resources
+	for id, item := range pool.items {
+		item.Clean()
+		delete(pool.items, id)
+	}
 }
 
+func (pool *Pool) maintain() {
+	if pool.status == 1 { // only maintain alive pool
+		pool.addNewItem()
+		go (func() {
+			time.Sleep(pool.duration)
+			// keep maintain
+			pool.maintain()
+		})()
+	}
+}
+
+// get a pool, need to provide:
+//    (1) getNewItem: how to get a new item
+//    (2) size
+//    (3) duration to get a new item
 func GetPool(getNewItem GetNewItem, size int, duration time.Duration) Pool {
 	items := map[string]*Item{}
-	pool := Pool{items, getNewItem, size, &sync.Mutex{}, duration}
+	pool := Pool{items, getNewItem, size, &sync.Mutex{}, duration, 1}
 	pool.maintain()
 
 	return pool
