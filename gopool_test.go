@@ -28,7 +28,7 @@ func TestBase(t *testing.T) {
 		return &Item{res, func() {}}, nil
 	}
 
-	pool := GetPool(getNewItem, 8, 3000*time.Millisecond)
+	pool := GetPool(getNewItem, 8, 3000*time.Millisecond, 5*time.Second)
 
 	for i := 1; i < 1000; i++ {
 		api, _ := pool.Get()
@@ -57,7 +57,7 @@ func TestOnBroken(t *testing.T) {
 		return &Item{res, func() {}}, nil
 	}
 
-	pool := GetPool(getNewItem, 3, 50*time.Millisecond)
+	pool := GetPool(getNewItem, 3, 50*time.Millisecond, 5*time.Second)
 
 	time.Sleep(250 * time.Millisecond)
 	assertEqual(t, 3, pool.GetItemNum(), "")
@@ -85,7 +85,7 @@ func TestOnBroken2(t *testing.T) {
 		return &Item{res, func() {}}, nil
 	}
 
-	pool := GetPool(getNewItem, 3, 1*time.Millisecond)
+	pool := GetPool(getNewItem, 3, 1*time.Millisecond, 5*time.Second)
 
 	time.Sleep(40 * time.Millisecond)
 	assertEqual(t, 3, pool.GetItemNum(), "")
@@ -112,7 +112,7 @@ func TestShutdown(t *testing.T) {
 		return &Item{res, func() {}}, nil
 	}
 
-	pool := GetPool(getNewItem, 3, 50*time.Millisecond)
+	pool := GetPool(getNewItem, 3, 50*time.Millisecond, 5*time.Second)
 
 	time.Sleep(250 * time.Millisecond)
 	pool.Shutdown()

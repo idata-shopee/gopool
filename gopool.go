@@ -27,12 +27,13 @@ type GetNewItem = func(OnItemBorken) (*Item, error)
 
 // define pool data structure
 type Pool struct {
-	items      map[string]*Item
-	getNewItem GetNewItem
-	size       int
-	mutex      *sync.Mutex
-	duration   time.Duration
-	status     int // pool status, 0: stoped, 1: opened
+	items         map[string]*Item
+	getNewItem    GetNewItem
+	size          int
+	mutex         *sync.Mutex
+	duration      time.Duration
+	retryDuration time.Duration
+	status        int // pool status, 0: stoped, 1: opened
 }
 
 func (pool *Pool) GetItemNum() int {
@@ -43,18 +44,24 @@ func (pool *Pool) GetItemNum() int {
 
 func (pool *Pool) addNewItem() {
 	if len(pool.items) < pool.size {
-		uid, uerr := uuid.NewV4()
+		uid, err := uuid.NewV4()
 		id := uid.String()
-		if uerr != nil {
+		if err != nil {
 			// TODO
-			fmt.Println(uerr)
+			fmt.Println(err)
 		} else {
 			item, err := pool.getNewItem(func() {
+				// item broken, like connection broken
 				pool.handleItemBroken(id)
 			})
 			if err != nil {
-				// TODO
+				// fail to add new item
 				fmt.Println(err)
+
+				go (func() {
+					time.Sleep(pool.retryDuration)
+					pool.addNewItem()
+				})()
 			} else {
 				pool.items[id] = item
 			}
@@ -131,9 +138,9 @@ func (pool *Pool) maintain() {
 //    (1) getNewItem: how to get a new item
 //    (2) size
 //    (3) duration to get a new item
-func GetPool(getNewItem GetNewItem, size int, duration time.Duration) *Pool {
+func GetPool(getNewItem GetNewItem, size int, duration time.Duration, retryDuration time.Duration) *Pool {
 	items := map[string]*Item{}
-	pool := Pool{items, getNewItem, size, &sync.Mutex{}, duration, 1}
+	pool := Pool{items, getNewItem, size, &sync.Mutex{}, duration, retryDuration, 1}
 	pool.maintain()
 
 	return &pool
