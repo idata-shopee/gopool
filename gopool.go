@@ -44,27 +44,22 @@ func (pool *Pool) GetItemNum() int {
 
 func (pool *Pool) addNewItem() {
 	if len(pool.items) < pool.size {
-		uid, err := uuid.NewV4()
+		uid := uuid.NewV4()
 		id := uid.String()
+		item, err := pool.getNewItem(func() {
+			// item broken, like connection broken
+			pool.handleItemBroken(id)
+		})
 		if err != nil {
-			// TODO
+			// fail to add new item
 			fmt.Println(err)
-		} else {
-			item, err := pool.getNewItem(func() {
-				// item broken, like connection broken
-				pool.handleItemBroken(id)
-			})
-			if err != nil {
-				// fail to add new item
-				fmt.Println(err)
 
-				go (func() {
-					time.Sleep(pool.retryDuration)
-					pool.addNewItem()
-				})()
-			} else {
-				pool.items[id] = item
-			}
+			go (func() {
+				time.Sleep(pool.retryDuration)
+				pool.addNewItem()
+			})()
+		} else {
+			pool.items[id] = item
 		}
 	}
 }

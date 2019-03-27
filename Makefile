@@ -1,11 +1,14 @@
 GOPATH := $(shell cd ../../../.. && pwd)
 export GOPATH
 
-save:
-	godep save
+init-dep:
+	@dep init
 
-restore:
-	godep restore -v
+status-dep:
+	@dep status
+
+update-dep:
+	@dep ensure -update
 
 test:
 	@go test -v -race
