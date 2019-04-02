@@ -44,7 +44,7 @@ func (pool *Pool) GetItemNum() int {
 
 func (pool *Pool) addNewItem() {
 	if len(pool.items) < pool.size {
-		uid := uuid.Must(uuid.NewV4())
+		uid := uuid.NewV4()
 		id := uid.String()
 		item, err := pool.getNewItem(func() {
 			// item broken, like connection broken
