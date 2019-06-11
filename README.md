@@ -6,7 +6,7 @@ A pool library for golang
 
 ```go
 import (
-  "github.com/idata-shopee/gopool"
+  "github.com/lock-free/gopool"
   "time"
 )
 
